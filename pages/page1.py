@@ -7,6 +7,8 @@ from datetime import datetime, timedelta
 from sklearn.cluster import AgglomerativeClustering
 from pathlib import Path
 import base64
+from collections import Counter
+import altair as alt
 
 # Import your custom clustering module
 from clustering import compute_tfidf
@@ -34,12 +36,18 @@ def filter_articles_by_keywords(articles, keywords):
     if not isinstance(keywords, list):
         keywords = [keywords] if keywords else []
 
+    # Ensure keywords are not empty or None
+    keywords = [keyword.lower() for keyword in keywords if keyword]
+
+    if not keywords:
+        return articles  # Return all articles if no valid keywords are provided
+
     filtered_articles = []
     for article in articles:
-        body = article.get('body', '')
-        if any(keyword.lower() in body.lower() for keyword in keywords if keyword):
+        body = article.get('body', '').lower()  # Convert body to lowercase for case-insensitive matching
+        if any(keyword in body for keyword in keywords):
             filtered_articles.append(article)
-    
+
     return filtered_articles
 
 def filter_articles_by_date_and_sentiment(articles_df, start_date, end_date, sentiment):
@@ -85,6 +93,23 @@ def truncate_summary(summary, word_limit=100):
         return ' '.join(words[:word_limit]) + '...'
     return summary
 
+def display_article(article):
+    if article.get('image_url'):
+        st.image(article['image_url'], use_column_width=True)
+
+    st.markdown(f"### [{article.get('title')}]({article.get('url')})")
+    st.subheader(f"Source: {article.get('source')}")
+    st.write(f"Published on: {article.get('date')} at {article.get('time')}")
+
+    summary = article.get('summary', '')
+    truncated_summary = truncate_summary(summary)
+    st.write(truncated_summary)
+
+    st.write(f"Frequent Words: {', '.join(article.get('keywords', []))}")
+    st.write(f"Sentiment: {article.get('sentiment_category')}")
+    st.write(f"Cluster ID: {article.get('cluster_id')}")
+    st.write("---")
+
 def display_articles(articles_df, clusters, clusters_per_row=3):
     if articles_df.empty:
         st.write("No articles found with the given keyword or current date.")
@@ -106,21 +131,7 @@ def display_articles(articles_df, clusters, clusters_per_row=3):
 
                 for _, article in articles:
                     if displayed_articles < 2:
-                        if article.get('image_url'):
-                            st.image(article['image_url'], use_column_width=True)
-
-                        st.markdown(f"### [{article.get('title')}]({article.get('url')})")
-                        st.subheader(f"Source: {article.get('source')}")
-                        st.write(f"Published on: {article.get('date')} at {article.get('time')}")
-
-                        summary = article.get('summary', '')
-                        truncated_summary = truncate_summary(summary)
-                        st.write(truncated_summary)
-
-                        st.write(f"Frequent Words: {', '.join(article.get('keywords', []))}")
-                        st.write(f"Sentiment: {article.get('sentiment_category')}")
-                        st.write(f"Cluster ID: {article.get('cluster_id')}")
-                        st.write("---")
+                        display_article(article)
                         displayed_articles += 1
                     else:
                         break
@@ -128,21 +139,35 @@ def display_articles(articles_df, clusters, clusters_per_row=3):
                 if displayed_articles < len(group):
                     with st.expander("Show more articles"):
                         for _, article in articles:
-                            if article.get('image_url'):
-                                st.image(article['image_url'], use_column_width=True)
+                            display_article(article)
 
-                            st.markdown(f"### [{article.get('title')}]({article.get('url')})")
-                            st.subheader(f"Source: {article.get('source')}")
-                            st.write(f"Published on: {article.get('date')} at {article.get('time')}")
+def extract_frequent_terms_from_keywords(articles, top_n=20):
+    all_keywords = []
+    for article in articles:
+        keywords = article.get('keywords', [])
+        all_keywords.extend(keywords)
+    
+    keyword_freq = Counter(all_keywords)
+    common_terms = keyword_freq.most_common(top_n)
+    return common_terms
 
-                            summary = article.get('summary', '')
-                            truncated_summary = truncate_summary(summary)
-                            st.write(truncated_summary)
+def plot_frequent_terms(terms):
+    df = pd.DataFrame(terms, columns=['term', 'frequency'])
+    df['size'] = df['frequency'] * 10
 
-                            st.write(f"Frequent Words: {', '.join(article.get('keywords', []))}")
-                            st.write(f"Sentiment: {article.get('sentiment_category')}")
-                            st.write(f"Cluster ID: {article.get('cluster_id')}")
-                            st.write("---")
+    chart = alt.Chart(df).mark_circle().encode(
+        x=alt.X('term:N', sort=alt.EncodingSortField(field='frequency', order='descending')),
+        y='frequency:Q',
+        size='size:Q',
+        color='term:N',
+        tooltip=['term', 'frequency']
+    ).properties(
+        title='Most Frequent Terms',
+        width=800,
+        height=400
+    )
+
+    st.altair_chart(chart)
 
 def img_to_bytes(img_path):
     img_bytes = Path(img_path).read_bytes()
@@ -224,11 +249,17 @@ if __name__ == '__main__':
     col1.metric("Total Articles Scraped", total_articles_scraped)
     col2.metric("Total Articles Based on Filter", total_articles_filtered)
 
-    # Display number of articles by source
-    articles_by_source = filtered_articles_df['source'].value_counts()
-    st.write("Articles by Source")
-    st.table(articles_by_source)
-
-    filtered_articles_df, clusters = cluster_articles(filtered_articles_df, keyword)
+    if len(filtered_articles_df) == 1:
+        # Display the single article directly without clustering
+        st.markdown("## Single Article Found")
+        display_article(filtered_articles_df.iloc[0])
+    else:
+        filtered_articles_df, clusters = cluster_articles(filtered_articles_df, keyword)
+        display_articles(filtered_articles_df, clusters)
     
-    display_articles(filtered_articles_df, clusters)
+    # Extract and plot frequent terms
+    if not filtered_articles_df.empty:
+        terms = extract_frequent_terms_from_keywords(filtered_articles_df.to_dict(orient='records'))
+        if terms:
+            st.markdown("## Most Frequent Terms in Filtered Articles")
+            plot_frequent_terms(terms)
