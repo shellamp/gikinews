@@ -132,22 +132,6 @@ if search_topic:
 # Clustering
 clusters, clustered_papers_df = cluster_articles(filtered_papers_df)
 
-# Display clustering results
-num_clusters = len(clusters)
-st.subheader(f"Number of clusters created: {num_clusters}")
-
-if num_clusters > 0:
-    for cluster_id, articles in clusters.items():
-        st.write(f"### Cluster {cluster_id}")
-        st.write(f"**Number of articles in cluster**: {len(articles)}")
-        st.write("**Short explanation**:")
-        st.write(f"Articles in this cluster are about '{', '.join([article['title'] for article in articles[:3]])}...'")
-
-    # Display articles in a table, where columns are clusters
-    cluster_table = pd.DataFrame.from_records([{'title': article['title'], 'cluster': article['cluster_id']} for article in clustered_papers_df.to_dict('records')])
-    cluster_table_pivot = cluster_table.pivot(columns='cluster', values='title')
-    st.dataframe(cluster_table_pivot)
-
 # KPI VISUALS
 source_count = str(filtered_papers_df["source"].nunique())
 keyword_count = str(filtered_papers_df["keywords"].nunique())
@@ -186,10 +170,26 @@ with col4:
     donut_chart_data.columns = [donut_chart_param, 'counts']
     donut_chart = alt.Chart(donut_chart_data).mark_arc(innerRadius=50).encode(
         theta=alt.Theta(field='counts', type='quantitative'),
-        color=alt.Color(field='nominal', type='nominal'),
+        color=alt.Color(field=donut_chart_param, type='nominal'),
         tooltip=[donut_chart_param, 'counts']
     ).properties(
         width=100,
         height=200
     )
     st.altair_chart(donut_chart, use_container_width=True)
+
+# Display clustering results
+num_clusters = len(clusters)
+st.subheader(f"Number of clusters created: {num_clusters}")
+
+if num_clusters > 0:
+    for cluster_id, articles in clusters.items():
+        st.write(f"### Cluster {cluster_id}")
+        st.write(f"**Number of articles in cluster**: {len(articles)}")
+        st.write("**Short explanation**:")
+        st.write(f"Articles in this cluster are about '{', '.join([article['title'] for article in articles[:3]])}...'")
+
+    # Display articles in a table, where columns are clusters
+    cluster_table = pd.DataFrame.from_records([{'title': article['title'], 'cluster': article['cluster_id']} for article in clustered_papers_df.to_dict('records')])
+    cluster_table_pivot = cluster_table.pivot(columns='cluster', values='title')
+    st.dataframe(cluster_table_pivot)
