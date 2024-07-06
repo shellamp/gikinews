@@ -21,5 +21,6 @@ COPY app/logo.jpg app/logo.jpg
 COPY entrypoint.sh .
 RUN chmod +x entrypoint.sh
 
-# Run app.py when the container launches
-ENTRYPOINT ["streamlit", "run", "--server.enableCORS", "false", "--server.port", "8501", "app.py"]
+# Use entrypoint.sh as the entrypoint for the container
+ENTRYPOINT ["./entrypoint.sh"]
+CMD ["streamlit", "run", "--server.enableCORS", "false", "--server.port", "8503", "main.py"]

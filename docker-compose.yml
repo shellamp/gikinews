@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  news_scrapper:
+    image: news_scrapper:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8503:8503"
+    volumes:
+      - .:/usr/src/app
+    command: ["streamlit", "run", "--server.enableCORS", "false", "--server.port", "8503", "main.py"]

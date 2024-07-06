@@ -60,3 +60,33 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+def cluster_articles(news_df):
+    num_articles = len(news_df)
+    
+    if num_articles < 3:
+        return {}, news_df
+    
+    if num_articles < 5:
+        num_clusters = 2
+    elif num_articles < 20:
+        num_clusters = 3
+    elif num_articles < 50:
+        num_clusters = 6
+    else:
+        num_clusters = 10
+    
+    tfidf_array = compute_tfidf(news_df)
+    clustering_model = AgglomerativeClustering(n_clusters=num_clusters)
+    cluster_labels = clustering_model.fit_predict(tfidf_array)
+    
+    news_df['cluster_id'] = cluster_labels
+    clusters = {}
+    
+    for idx, row in news_df.iterrows():
+        cluster_id = row['cluster_id']
+        if cluster_id not in clusters:
+            clusters[cluster_id] = []
+        clusters[cluster_id].append(row.to_dict())
+    
+    return clusters, news_df
