@@ -1,10 +1,10 @@
 #!/bin/sh
 
-# Run the scrapper script
+echo "Running the scrapper script..."
 python scrapper.py
 
-# Run the clustering script
+echo "Running the clustering script..."
 python clustering.py
 
-# Start the Streamlit app
-streamlit run app.py
+echo "Starting the Streamlit app..."
+exec streamlit run main.py "$@"
