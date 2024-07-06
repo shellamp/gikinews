@@ -1,0 +1,9 @@
+feedparser
+python-dateutil
+newspaper3k
+pandas
+textblob
+nltk
+unidecode
+streamlit
+scikit-learn
