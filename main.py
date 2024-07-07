@@ -50,25 +50,44 @@ original_data = load_data()
 # Extract necessary data from the loaded JSON
 articles = list(original_data.values())
 
-# Create a search bar
-search_topic = st.text_input("Search for a topic")
+# Sidebar filters
+st.sidebar.header('Filters')
+search_topic = st.sidebar.text_input("Search for a topic")
+selected_sentiment = st.sidebar.multiselect(
+    "Select Sentiment Category",
+    options=list(set(article['sentiment_category'] for article in articles)),
+    default=list(set(article['sentiment_category'] for article in articles))
+)
+all_sources = list(set(article['source'] for article in articles))
+selected_sources = st.sidebar.multiselect(
+    "Select Sources",
+    options=all_sources,
+    default=[]
+)
 
-# Filter articles based on the search topic
-if search_topic:
-    filtered_articles = [article for article in articles if search_topic.lower() in article['title'].lower() or search_topic.lower() in article['body'].lower()]
-else:
-    filtered_articles = articles
+# If no sources are selected, use all sources
+if not selected_sources:
+    selected_sources = all_sources
+
+# Filter articles based on the search topic, selected sentiment category, and selected sources
+filtered_articles = [
+    article for article in articles 
+    if (search_topic.lower() in article['title'].lower() or search_topic.lower() in article['body'].lower())
+    and article['sentiment_category'] in selected_sentiment
+    and article['source'] in selected_sources
+]
 
 # Extract necessary data from the filtered articles
 filtered_titles = [article['title'] for article in filtered_articles]
 filtered_sources = [article['source'] for article in filtered_articles]
 filtered_keywords = [keyword for article in filtered_articles for keyword in article.get('keywords', [])]
+filtered_sentiments = [article['sentiment_category'] for article in filtered_articles]
 
 # Recalculate metrics for filtered articles
 filtered_total_articles = len(filtered_articles)
 filtered_unique_sources = len(set(filtered_sources))
 
-# Create a dataframe for the filtered donut chart
+# Create a dataframe for the filtered donut chart showing sources
 df_filtered = pd.DataFrame({'Source': filtered_sources})
 
 # Calculate counts for each source in the filtered data
@@ -81,8 +100,28 @@ donut_chart = alt.Chart(filtered_source_counts).mark_arc(innerRadius=50).encode(
     color=alt.Color(field='Source', type='nominal', legend=alt.Legend(title="Sources")),
     tooltip=['Source', 'Count']
 ).properties(
-    width=400,
-    height=400
+    width=300,
+    height=300
+).configure_legend(
+    titleFontSize=14,
+    labelFontSize=12
+).configure_view(
+    strokeWidth=0
+)
+
+# Prepare data for the sentiment stacked bar chart
+sentiment_counts = pd.DataFrame({'Sentiment': filtered_sentiments, 'Source': filtered_sources})
+sentiment_counts = sentiment_counts.groupby(['Source', 'Sentiment']).size().reset_index(name='Count')
+
+# Create a stacked bar chart for sentiment categories
+stacked_bar_chart = alt.Chart(sentiment_counts).mark_bar().encode(
+    x=alt.X('Source:N', title='Source'),
+    y=alt.Y('Count:Q', title='Count'),
+    color=alt.Color('Sentiment:N', title='Sentiment'),
+    tooltip=['Source', 'Sentiment', 'Count']
+).properties(
+    width=300,
+    height=300
 ).configure_legend(
     titleFontSize=14,
     labelFontSize=12
@@ -127,15 +166,21 @@ bubble_chart = alt.Chart(filtered_keyword_counts).mark_circle().encode(
 # Display metrics and charts in Streamlit
 st.title("Article Metrics")
 
-col1, col2, col3 = st.columns(3)
-with col1:
+# Row 1
+row1_col1, row1_col2 = st.columns(2)
+with row1_col1:
     st.metric(label="Total Articles", value=filtered_total_articles)
-with col2:
+with row1_col2:
     st.metric(label="Total Sources", value=filtered_unique_sources)
-with col3:
+
+# Row 2
+row2_col1, row2_col2 = st.columns(2)
+with row2_col1:
+    st.altair_chart(stacked_bar_chart, use_container_width=True)
+with row2_col2:
     st.altair_chart(donut_chart, use_container_width=True)
 
-st.title("Keyword Frequency")
+# Row 3
 st.altair_chart(bubble_chart, use_container_width=True)
 
 # Optionally, display articles or additional information here
