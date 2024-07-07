@@ -159,7 +159,7 @@ if __name__ == '__main__':
 
     st.title("News Articles for people on a hurry!")
 
-    st.sidebar.image("app\logo.png", use_column_width=True) 
+    st.sidebar.image("app/logo.png", use_column_width=True) 
 
     with st.sidebar:
         

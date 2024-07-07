@@ -47,7 +47,7 @@ st.markdown(f"""
     """, unsafe_allow_html=True)
 
 # Sidebar filters
-st.sidebar.image("app\logo.png", use_column_width=True) 
+st.sidebar.image("app/logo.png", use_column_width=True) 
 
 # Check if cluster ID is provided
 cluster_id = int(st.query_params.get('cluster_id', [0])[0])

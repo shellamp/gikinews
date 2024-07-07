@@ -49,7 +49,7 @@ original_data = load_data()
 # Extract necessary data from the loaded JSON
 articles = list(original_data.values())
 
-st.sidebar.image("app\logo.png", use_column_width=True)  
+st.sidebar.image("app/logo.png", use_column_width=True)  
 
 search_topic = st.sidebar.text_input("Search for a topic")
 selected_sentiment = st.sidebar.multiselect(
@@ -224,7 +224,7 @@ else:
 
     for cluster_id, titles in sorted_clusters:
         # Define cluster name and sample keywords
-        cluster_name = f"<a href='/page_clusters?cluster_id={cluster_id}' target=_top>Cluster {cluster_id + 1}</a>"
+        cluster_name = f"<a href='/cluster?cluster_id={cluster_id}' target=_top>Cluster {cluster_id + 1}</a>"
         cluster_keywords_list = ", ".join(cluster_keywords[cluster_id])
         cluster_keywords_str = f"Keywords: {cluster_keywords_list}"
         num_articles = len(titles)
