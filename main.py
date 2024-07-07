@@ -138,7 +138,7 @@ keyword_counts = df_keywords['Keyword'].value_counts().reset_index()
 keyword_counts.columns = ['Keyword', 'Count']
 
 # Filter keywords that appear at least 8 times
-filtered_keyword_counts = keyword_counts[keyword_counts['Count'] >= 8]
+filtered_keyword_counts = keyword_counts[keyword_counts['Count'] >= 1]
 
 # Create a sorting function to sort numbers first, then words
 def sort_keywords(keyword):
