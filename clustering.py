@@ -4,6 +4,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import AgglomerativeClustering
 import json
 import logging
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.cluster import KMeans
 
 CACHE_FILE = 'article_cache.json'
 
@@ -61,32 +63,17 @@ def main():
 if __name__ == "__main__":
     main()
 
-def cluster_articles(news_df):
-    num_articles = len(news_df)
-    
-    if num_articles < 3:
-        return {}, news_df
-    
-    if num_articles < 5:
-        num_clusters = 2
-    elif num_articles < 20:
-        num_clusters = 3
-    elif num_articles < 50:
-        num_clusters = 6
-    else:
-        num_clusters = 10
-    
-    tfidf_array = compute_tfidf(news_df)
-    clustering_model = AgglomerativeClustering(n_clusters=num_clusters)
-    cluster_labels = clustering_model.fit_predict(tfidf_array)
-    
-    news_df['cluster_id'] = cluster_labels
+def cluster_articles(titles, n_clusters=5):
+    vectorizer = TfidfVectorizer(stop_words='english')
+    X = vectorizer.fit_transform(titles)
+
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    kmeans.fit(X)
+
     clusters = {}
-    
-    for idx, row in news_df.iterrows():
-        cluster_id = row['cluster_id']
-        if cluster_id not in clusters:
-            clusters[cluster_id] = []
-        clusters[cluster_id].append(row.to_dict())
-    
-    return clusters, news_df
+    for idx, label in enumerate(kmeans.labels_):
+        if label not in clusters:
+            clusters[label] = []
+        clusters[label].append(titles[idx])
+
+    return clusters
