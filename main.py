@@ -5,8 +5,7 @@ import json
 import toml
 import os
 from clustering import cluster_articles
-
-# Other necessary imports...
+from collections import Counter
 
 # PAGE FORMAT
 st.set_page_config(layout='wide', initial_sidebar_state='expanded')
@@ -163,27 +162,80 @@ bubble_chart = alt.Chart(filtered_keyword_counts).mark_circle().encode(
     height=400
 )
 
-# Display metrics and charts in Streamlit
-st.title("Article Metrics")
+# Determine the number of clusters dynamically
+if filtered_total_articles == 0:
+    st.write("No articles found")
+else:
+    if 0 < filtered_total_articles <= 10:
+        num_clusters = 3
+    elif 10 < filtered_total_articles <= 50:
+        num_clusters = 5
+    elif 50 < filtered_total_articles <= 100:
+        num_clusters = 7
+    else:
+        num_clusters = 12
 
-# Row 1
-row1_col1, row1_col2 = st.columns(2)
-with row1_col1:
-    st.metric(label="Total Articles", value=filtered_total_articles)
-with row1_col2:
-    st.metric(label="Total Sources", value=filtered_unique_sources)
+    # Cluster articles based on filtered titles
+    clusters = cluster_articles(filtered_titles, num_clusters)
 
-# Row 2
-row2_col1, row2_col2 = st.columns(2)
-with row2_col1:
-    st.altair_chart(stacked_bar_chart, use_container_width=True)
-with row2_col2:
-    st.altair_chart(donut_chart, use_container_width=True)
+    # Calculate most frequent keywords for each cluster
+    cluster_keywords = {}
+    for cluster_id, titles in clusters.items():
+        cluster_articles = [article for article in filtered_articles if article['title'] in titles]
+        keywords = [keyword for article in cluster_articles for keyword in article.get('keywords', [])]
+        most_common_keywords = [keyword for keyword, _ in Counter(keywords).most_common(3)]
+        cluster_keywords[cluster_id] = most_common_keywords
 
-# Row 3
-st.altair_chart(bubble_chart, use_container_width=True)
+    # Store filtered_articles and clusters in session state for access on another page
+    st.session_state.filtered_articles = filtered_articles
+    st.session_state.clusters = clusters
 
-# Optionally, display articles or additional information here
-st.subheader("Article Titles")
-for title in filtered_titles:
-    st.write(f"- {title}")
+    # Display metrics and charts in Streamlit
+    st.title("Article Metrics")
+
+    # Row 1
+    row1_col1, row1_col2 = st.columns(2)
+    with row1_col1:
+        st.metric(label="Total Articles", value=filtered_total_articles)
+    with row1_col2:
+        st.metric(label="Total Sources", value=filtered_unique_sources)
+
+    # Row 2
+    row2_col1, row2_col2 = st.columns(2)
+    with row2_col1:
+        st.altair_chart(stacked_bar_chart, use_container_width=True)
+    with row2_col2:
+        st.altair_chart(donut_chart, use_container_width=True)
+
+    # Row 3
+    st.altair_chart(bubble_chart, use_container_width=True)
+
+    # Display clusters in a markdown format in two columns
+    st.title("Article Clusters")
+
+    cols = st.columns(2)
+    col_index = 0
+
+    # Sort clusters by cluster number
+    sorted_clusters = sorted(clusters.items())
+
+    for cluster_id, titles in sorted_clusters:
+        # Define cluster name and sample keywords
+        cluster_name = f"<a href='/page_clusters?cluster_id={cluster_id}' target=_top>Cluster {cluster_id + 1}</a>"
+        cluster_keywords_list = ", ".join(cluster_keywords[cluster_id])
+        cluster_keywords_str = f"Keywords: {cluster_keywords_list}"
+        num_articles = len(titles)
+        
+        # Representative articles (sample titles)
+        representative_articles = "Representative Articles:\n" + "\n".join([f"- \"{title}\"" for title in titles[:2]])
+        
+        # Create markdown content
+        cluster_markdown = f"""
+        - **{cluster_name}** ({num_articles} articles)
+            - {cluster_keywords_str}
+            - {representative_articles}
+        """
+        
+        # Display in columns
+        cols[col_index].markdown(cluster_markdown, unsafe_allow_html=True)
+        col_index = (col_index + 1) % 2

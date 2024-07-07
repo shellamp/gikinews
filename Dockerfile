@@ -17,8 +17,8 @@ RUN pip install lxml_html_clean
 RUN python -c "import nltk; nltk.download('stopwords'); nltk.download('punkt')"
 
 # Ensure the images are in the correct path inside the container
-COPY app/Cat.jpg app/Cat.jpg
-COPY app/logo.jpg app/logo.jpg
+COPY app/Cat.png app/Cat.png
+COPY app/logo.png app/logo.png
 
 # Make entrypoint.sh executable
 COPY entrypoint.sh .
