@@ -3,8 +3,8 @@ import streamlit as st
 import altair as alt
 import json
 import toml
-import os
-from clustering import cluster_articles
+from clustering import compute_tfidf
+from sklearn.cluster import AgglomerativeClustering
 from collections import Counter
 
 # PAGE FORMAT
@@ -49,8 +49,8 @@ original_data = load_data()
 # Extract necessary data from the loaded JSON
 articles = list(original_data.values())
 
-st.sidebar.image("app/logo.png", use_column_width=True)  
-
+# Sidebar filters
+st.sidebar.header('Filters')
 search_topic = st.sidebar.text_input("Search for a topic")
 selected_sentiment = st.sidebar.multiselect(
     "Select Sentiment Category",
@@ -100,8 +100,7 @@ donut_chart = alt.Chart(filtered_source_counts).mark_arc(innerRadius=50).encode(
     tooltip=['Source', 'Count']
 ).properties(
     width=300,
-    height=300,
-    title="Source Distribution"
+    height=300
 ).configure_legend(
     titleFontSize=14,
     labelFontSize=12
@@ -121,8 +120,7 @@ stacked_bar_chart = alt.Chart(sentiment_counts).mark_bar().encode(
     tooltip=['Source', 'Sentiment', 'Count']
 ).properties(
     width=300,
-    height=300,
-    title="Sentiment Distribution by Source"
+    height=300
 ).configure_legend(
     titleFontSize=14,
     labelFontSize=12
@@ -161,26 +159,23 @@ bubble_chart = alt.Chart(filtered_keyword_counts).mark_circle().encode(
     tooltip=['Keyword', 'Count']
 ).properties(
     width=600,
-    height=400,
-    title="Keyword Frequency"
+    height=400
 )
 
-# Determine the number of clusters dynamically
+# Determine clusters using AgglomerativeClustering
 if filtered_total_articles == 0:
     st.write("No articles found")
 else:
-    if 0 < filtered_total_articles <= 10:
-        num_clusters = 3
-    elif 10 < filtered_total_articles <= 50:
-        num_clusters = 5
-    elif 50 < filtered_total_articles <= 100:
-        num_clusters = 7
-    else:
-        num_clusters = 12
-
-    # Cluster articles based on filtered titles
-    clusters = cluster_articles(filtered_titles, num_clusters)
-
+    # Compute TF-IDF values for filtered articles
+    news_df = pd.DataFrame(filtered_articles)
+    tfidf_array = compute_tfidf(news_df)
+    
+    clustering_model = AgglomerativeClustering(n_clusters=None, distance_threshold=1.5)
+    news_df['cluster_id'] = clustering_model.fit_predict(tfidf_array)
+    
+    clusters = {str(cluster_id): news_df[news_df.cluster_id == cluster_id]['title'].tolist()
+                for cluster_id in news_df['cluster_id'].unique()}
+    
     # Calculate most frequent keywords for each cluster
     cluster_keywords = {}
     for cluster_id, titles in clusters.items():
@@ -194,7 +189,7 @@ else:
     st.session_state.clusters = clusters
 
     # Display metrics and charts in Streamlit
-    st.title("General Article Metrics")
+    st.title("Article Metrics")
 
     # Row 1
     row1_col1, row1_col2 = st.columns(2)
@@ -214,7 +209,7 @@ else:
     st.altair_chart(bubble_chart, use_container_width=True)
 
     # Display clusters in a markdown format in two columns
-    st.title("Article Cluster List")
+    st.title("Article Clusters")
 
     cols = st.columns(2)
     col_index = 0
@@ -224,7 +219,7 @@ else:
 
     for cluster_id, titles in sorted_clusters:
         # Define cluster name and sample keywords
-        cluster_name = f"<a href='/cluster?cluster_id={cluster_id}' target=_top>Cluster {cluster_id + 1}</a>"
+        cluster_name = f"<a href='/cluster?cluster_id={cluster_id}' target='_top'>Cluster {cluster_id}</a>"
         cluster_keywords_list = ", ".join(cluster_keywords[cluster_id])
         cluster_keywords_str = f"Keywords: {cluster_keywords_list}"
         num_articles = len(titles)
