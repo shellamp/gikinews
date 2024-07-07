@@ -26,4 +26,4 @@ RUN chmod +x entrypoint.sh
 
 # Use entrypoint.sh as the entrypoint for the container
 ENTRYPOINT ["./entrypoint.sh"]
-CMD ["streamlit", "run", "--server.enableCORS", "false", "--server.port", "8503", "main.py"]
+CMD ["streamlit", "run", "--server.enableCORS", "false", "--server.port", "8501", "main_page.py"]

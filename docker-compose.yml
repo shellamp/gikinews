@@ -7,7 +7,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8503:8503"
+      - "8501:8501"
     volumes:
       - .:/usr/src/app
-    command: ["streamlit", "run", "--server.enableCORS", "false", "--server.port", "8503", "main.py"]
+    command: ["streamlit", "run", "--server.enableCORS", "false", "--server.port", "8501", "main_page.py"]
