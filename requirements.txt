@@ -7,3 +7,5 @@ nltk
 unidecode
 streamlit
 scikit-learn
+lxml
+lxml_html_clean

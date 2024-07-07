@@ -10,6 +10,9 @@ COPY . .
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
+RUN pip install lxml[html_clean]
+RUN pip install lxml_html_clean
+
 # Download NLTK data
 RUN python -c "import nltk; nltk.download('stopwords'); nltk.download('punkt')"
 
