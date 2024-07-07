@@ -7,17 +7,17 @@ from datetime import datetime, timedelta
 from sklearn.cluster import AgglomerativeClustering
 from pathlib import Path
 import base64
-from collections import Counter
 
+# Import your custom clustering module
 from clustering import compute_tfidf
 
 st.set_page_config(layout='wide', initial_sidebar_state='expanded')
 
 ARTICLES_CACHE_FILE = 'article_cache.json'
-LOGO_PATH = 'app/Cat.png'
-KEYWORD_LOGO_PATH = 'app/logo.png'
+LOGO_PATH = 'app/Cat.jpg'
+KEYWORD_LOGO_PATH = 'app/logo.jpg'
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=3600)  # Cache the data for 1 hour
 def load_articles_from_cache(cache_file):
     try:
         if os.path.exists(cache_file):
@@ -34,18 +34,12 @@ def filter_articles_by_keywords(articles, keywords):
     if not isinstance(keywords, list):
         keywords = [keywords] if keywords else []
 
-    # Ensure keywords are not empty or None
-    keywords = [keyword.lower() for keyword in keywords if keyword]
-
-    if not keywords:
-        return articles  # Return all articles if no valid keywords are provided
-
     filtered_articles = []
     for article in articles:
-        body = article.get('body', '').lower()  # Convert body to lowercase for case-insensitive matching
-        if any(keyword in body for keyword in keywords):
+        body = article.get('body', '')
+        if any(keyword.lower() in body.lower() for keyword in keywords if keyword):
             filtered_articles.append(article)
-
+    
     return filtered_articles
 
 def filter_articles_by_date_and_sentiment(articles_df, start_date, end_date, sentiment):
@@ -85,33 +79,11 @@ def cluster_articles(articles_df, keyword):
 
     return articles_df, clusters
 
-def truncate_summary(summary, word_limit=75):
+def truncate_summary(summary, word_limit=100):
     words = summary.split()
     if len(words) > word_limit:
         return ' '.join(words[:word_limit]) + '...'
     return summary
-
-def display_article(article):
-    if article.get('image_url'):
-        img_html = f'''
-        <div style="width: 100%; height: 200px; overflow: hidden; position: relative;">
-            <img src="{article['image_url']}" style="width: 100%; position: absolute; top: 0; left: 0;">
-        </div>
-        '''
-        st.markdown(img_html, unsafe_allow_html=True)
-
-    st.markdown(f"### [{article.get('title')}]({article.get('url')})")
-    st.subheader(f"Source: {article.get('source')}")
-    st.write(f"Published on: {article.get('date')} at {article.get('time')}")
-
-    summary = article.get('summary', '')
-    truncated_summary = truncate_summary(summary)
-    st.write(truncated_summary)
-
-    st.write(f"Frequent Words: {', '.join(article.get('keywords', []))}")
-    st.write(f"Sentiment: {article.get('sentiment_category')}")
-    st.write(f"Cluster ID: {article.get('cluster_id')}")
-    st.write("---")
 
 def display_articles(articles_df, clusters, clusters_per_row=3):
     if articles_df.empty:
@@ -134,7 +106,21 @@ def display_articles(articles_df, clusters, clusters_per_row=3):
 
                 for _, article in articles:
                     if displayed_articles < 2:
-                        display_article(article)
+                        if article.get('image_url'):
+                            st.image(article['image_url'], use_column_width=True)
+
+                        st.markdown(f"### [{article.get('title')}]({article.get('url')})")
+                        st.subheader(f"Source: {article.get('source')}")
+                        st.write(f"Published on: {article.get('date')} at {article.get('time')}")
+
+                        summary = article.get('summary', '')
+                        truncated_summary = truncate_summary(summary)
+                        st.write(truncated_summary)
+
+                        st.write(f"Frequent Words: {', '.join(article.get('keywords', []))}")
+                        st.write(f"Sentiment: {article.get('sentiment_category')}")
+                        st.write(f"Cluster ID: {article.get('cluster_id')}")
+                        st.write("---")
                         displayed_articles += 1
                     else:
                         break
@@ -142,7 +128,21 @@ def display_articles(articles_df, clusters, clusters_per_row=3):
                 if displayed_articles < len(group):
                     with st.expander("Show more articles"):
                         for _, article in articles:
-                            display_article(article)
+                            if article.get('image_url'):
+                                st.image(article['image_url'], use_column_width=True)
+
+                            st.markdown(f"### [{article.get('title')}]({article.get('url')})")
+                            st.subheader(f"Source: {article.get('source')}")
+                            st.write(f"Published on: {article.get('date')} at {article.get('time')}")
+
+                            summary = article.get('summary', '')
+                            truncated_summary = truncate_summary(summary)
+                            st.write(truncated_summary)
+
+                            st.write(f"Frequent Words: {', '.join(article.get('keywords', []))}")
+                            st.write(f"Sentiment: {article.get('sentiment_category')}")
+                            st.write(f"Cluster ID: {article.get('cluster_id')}")
+                            st.write("---")
 
 def img_to_bytes(img_path):
     img_bytes = Path(img_path).read_bytes()
@@ -156,8 +156,17 @@ def img_to_html(img_path):
     return img_html
 
 if __name__ == '__main__':
+    # Display main logo centered at the top of the page with padding and background color
+    st.markdown(
+        f"""
+        <div style="display: flex; justify-content: center; align-items: center; background-color: #2E3859; border-radius: 10px;width:500px;margin:0 auto;margin-top:-55px;">
+            {img_to_html(LOGO_PATH)}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-    st.title("News Articles for people on a hurry!!")
+    st.title("News Articles")
 
     # Sidebar filters
     with st.sidebar:
@@ -215,11 +224,11 @@ if __name__ == '__main__':
     col1.metric("Total Articles Scraped", total_articles_scraped)
     col2.metric("Total Articles Based on Filter", total_articles_filtered)
 
-    if len(filtered_articles_df) == 1:
-        # Display the single article directly without clustering
-        st.markdown("## Single Article Found")
-        display_article(filtered_articles_df.iloc[0])
-    else:
-        filtered_articles_df, clusters = cluster_articles(filtered_articles_df, keyword)
-        display_articles(filtered_articles_df, clusters)
+    # Display number of articles by source
+    articles_by_source = filtered_articles_df['source'].value_counts()
+    st.write("Articles by Source")
+    st.table(articles_by_source)
+
+    filtered_articles_df, clusters = cluster_articles(filtered_articles_df, keyword)
     
+    display_articles(filtered_articles_df, clusters)
