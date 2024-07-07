@@ -2,6 +2,7 @@ import pandas as pd
 import streamlit as st
 import json
 import toml
+from datetime import datetime
 from clustering import compute_tfidf
 from sklearn.cluster import AgglomerativeClustering
 from collections import Counter
@@ -27,6 +28,10 @@ def load_data():
 # Load the data from the JSON file
 original_data = load_data()
 
+# Convert dates to datetime objects for filtering
+for article in original_data.values():
+    article['date'] = datetime.strptime(article['date'], '%Y-%m-%d')
+
 # Extract necessary data from the loaded JSON
 articles = list(original_data.values())
 
@@ -45,16 +50,30 @@ selected_sources = st.sidebar.multiselect(
     default=[]
 )
 
+# Get the date range for the slider
+min_date = min(article['date'] for article in articles)
+max_date = max(article['date'] for article in articles)
+
+# Date range slider
+start_date, end_date = st.sidebar.slider(
+    "Select date range",
+    min_value=min_date,
+    max_value=max_date,
+    value=(min_date, max_date),
+    format="YYYY-MM-DD"
+)
+
 # If no sources are selected, use all sources
 if not selected_sources:
     selected_sources = all_sources
 
-# Filter articles based on the search topic, selected sentiment category, and selected sources
+# Filter articles based on the search topic, selected sentiment category, selected sources, and date range
 filtered_articles = [
     article for article in articles 
     if (search_topic.lower() in article['title'].lower() or search_topic.lower() in article['body'].lower())
     and article['sentiment_category'] in selected_sentiment
     and article['source'] in selected_sources
+    and start_date <= article['date'] <= end_date
 ]
 
 # Determine clusters using AgglomerativeClustering
@@ -95,7 +114,7 @@ else:
         for idx, article in enumerate(articles[:3]):
             with cols[idx]:
                 image_url = article.get('image_url', 'https://via.placeholder.com/150')
-                date = article.get('date', 'No date available')
+                date = article.get('date').strftime('%Y-%m-%d')
                 title = article.get('title', 'No title available')
                 body = article.get('body', 'No body available')
                 sentiment = article.get('sentiment_category', 'No sentiment category available')
