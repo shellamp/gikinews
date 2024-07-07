@@ -16,10 +16,10 @@ from clustering import compute_tfidf
 st.set_page_config(layout='wide', initial_sidebar_state='expanded')
 
 ARTICLES_CACHE_FILE = 'article_cache.json'
-LOGO_PATH = 'app/Cat.jpg'
-KEYWORD_LOGO_PATH = 'app/logo.jpg'
+LOGO_PATH = 'app/Cat.png'
+KEYWORD_LOGO_PATH = 'app/logo.png'
 
-@st.cache_data(ttl=3600)  # Cache the data for 1 hour
+@st.cache_data(ttl=3600)  
 def load_articles_from_cache(cache_file):
     try:
         if os.path.exists(cache_file):
@@ -181,17 +181,8 @@ def img_to_html(img_path):
     return img_html
 
 if __name__ == '__main__':
-    # Display main logo centered at the top of the page with padding and background color
-    st.markdown(
-        f"""
-        <div style="display: flex; justify-content: center; align-items: center; background-color: #2E3859; border-radius: 10px;width:500px;margin:0 auto;margin-top:-55px;">
-            {img_to_html(LOGO_PATH)}
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
 
-    st.title("News Articles")
+    st.title("News Articles for people on a hurry!")
 
     # Sidebar filters
     with st.sidebar:
@@ -233,6 +224,15 @@ if __name__ == '__main__':
             options=["", "negative", "neutral", "positive"],
             format_func=lambda x: "All" if x == "" else x.capitalize()
         )
+
+        st.markdown(
+        f"""
+        <div style="display: flex; justify-content: center; align-items: center; background-color: #2E3859; border-radius: 10px;width:500px;margin:0 auto;margin-top:-55px;">
+            {img_to_html(LOGO_PATH)}
+        </div>
+        """,
+        unsafe_allow_html=True
+         )
 
     if keyword:
         filtered_articles = filter_articles_by_keywords(articles_df.to_dict(orient='records'), [keyword])
