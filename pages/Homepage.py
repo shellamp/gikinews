@@ -157,19 +157,11 @@ def img_to_html(img_path):
 
 if __name__ == '__main__':
 
-    st.title("News Articles for people on a hurry!!")
+    st.title("News Articles for people on a hurry!")
 
-    # Sidebar filters
+    st.sidebar.image("app\logo.png", use_column_width=True) 
+
     with st.sidebar:
-        # Display keyword logo above the search bar
-        st.markdown(
-            f"""
-            <div style="width: 355px;display: flex; justify-content: center; align-items: center;margin-left:-40px">
-                {img_to_html(KEYWORD_LOGO_PATH)}
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
         
         keyword = st.text_input("Search articles by keyword")
 

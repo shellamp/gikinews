@@ -49,8 +49,8 @@ original_data = load_data()
 # Extract necessary data from the loaded JSON
 articles = list(original_data.values())
 
-# Sidebar filters
-st.sidebar.header('Filters')
+st.sidebar.image("app\logo.png", use_column_width=True)  
+
 search_topic = st.sidebar.text_input("Search for a topic")
 selected_sentiment = st.sidebar.multiselect(
     "Select Sentiment Category",
@@ -100,7 +100,8 @@ donut_chart = alt.Chart(filtered_source_counts).mark_arc(innerRadius=50).encode(
     tooltip=['Source', 'Count']
 ).properties(
     width=300,
-    height=300
+    height=300,
+    title="Source Distribution"
 ).configure_legend(
     titleFontSize=14,
     labelFontSize=12
@@ -120,7 +121,8 @@ stacked_bar_chart = alt.Chart(sentiment_counts).mark_bar().encode(
     tooltip=['Source', 'Sentiment', 'Count']
 ).properties(
     width=300,
-    height=300
+    height=300,
+    title="Sentiment Distribution by Source"
 ).configure_legend(
     titleFontSize=14,
     labelFontSize=12
@@ -159,7 +161,8 @@ bubble_chart = alt.Chart(filtered_keyword_counts).mark_circle().encode(
     tooltip=['Keyword', 'Count']
 ).properties(
     width=600,
-    height=400
+    height=400,
+    title="Keyword Frequency"
 )
 
 # Determine the number of clusters dynamically
@@ -191,7 +194,7 @@ else:
     st.session_state.clusters = clusters
 
     # Display metrics and charts in Streamlit
-    st.title("Article Metrics")
+    st.title("General Article Metrics")
 
     # Row 1
     row1_col1, row1_col2 = st.columns(2)
@@ -211,7 +214,7 @@ else:
     st.altair_chart(bubble_chart, use_container_width=True)
 
     # Display clusters in a markdown format in two columns
-    st.title("Article Clusters")
+    st.title("Article Cluster List")
 
     cols = st.columns(2)
     col_index = 0

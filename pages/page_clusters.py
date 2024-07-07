@@ -46,6 +46,9 @@ st.markdown(f"""
     </style>
     """, unsafe_allow_html=True)
 
+# Sidebar filters
+st.sidebar.image("app\logo.png", use_column_width=True) 
+
 # Check if cluster ID is provided
 cluster_id = int(st.query_params.get('cluster_id', [0])[0])
 
@@ -92,6 +95,7 @@ if cluster_id in clusters:
         st.markdown("---")
 else:
     st.write(f"No articles found for cluster {cluster_id + 1}.")
+
 
 # @st.cache_data(ttl=3600)  
 # def load_articles_from_cache(cache_file):
