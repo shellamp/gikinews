@@ -186,6 +186,10 @@ else:
         most_common_keywords = [keyword for keyword, _ in Counter(keywords).most_common(3)]
         cluster_keywords[cluster_id] = most_common_keywords
 
+    # Store filtered_articles and clusters in session state for access on another page
+    st.session_state.filtered_articles = filtered_articles
+    st.session_state.clusters = clusters
+
     # Display metrics and charts in Streamlit
     st.title("Article Metrics")
 
@@ -217,7 +221,7 @@ else:
 
     for cluster_id, titles in sorted_clusters:
         # Define cluster name and sample keywords
-        cluster_name = f"<a href='/page{cluster_id+1}' target=_top>Cluster {cluster_id + 1}</a>"
+        cluster_name = f"<a href='/page_clusters?cluster_id={cluster_id}' target=_top>Cluster {cluster_id + 1}</a>"
         cluster_keywords_list = ", ".join(cluster_keywords[cluster_id])
         cluster_keywords_str = f"Keywords: {cluster_keywords_list}"
         num_articles = len(titles)

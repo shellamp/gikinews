@@ -1,51 +1,3 @@
-import streamlit as st
-
-import pandas as pd
-import os
-import json
-import numpy as np
-from datetime import datetime, timedelta
-from sklearn.cluster import AgglomerativeClustering
-from pathlib import Path
-import base64
-from collections import Counter
-import altair as alt
-
-# Check if clusters and articles are available in session state
-if 'clusters' not in st.session_state or 'articles' not in st.session_state:
-    st.write("No clusters found. Please go to the main page and filter articles.")
-else:
-    # Get cluster ID from URL
-    cluster_id = int(st.experimental_get_query_params().get('cluster_id', [0])[0])
-    clusters = st.session_state.clusters
-    articles = st.session_state.articles
-
-    # Get articles in the selected cluster
-    if cluster_id in clusters:
-        cluster_articles = [article for article in articles if article['title'] in clusters[cluster_id]]
-
-        # Display articles in the cluster
-        st.title(f"Articles in Cluster {cluster_id + 1}")
-
-        for article in cluster_articles:
-            st.markdown(f"## {article['title']}")
-            st.image(article.get('image_url', ''))
-            st.markdown(f"**Source:** {article['source']}")
-            st.markdown(f"**Published on:** {article['published_date']}")
-            st.markdown(article['body'])
-            st.markdown(f"**Frequent Words:** {', '.join(article.get('keywords', []))}")
-            st.markdown(f"**Sentiment:** {article['sentiment_category']}")
-            st.markdown("---")
-    else:
-        st.write(f"No articles found for cluster {cluster_id + 1}.")
-
-
-
-
-
-
-
-# import streamlit as st
 # import pandas as pd
 # import os
 # import json
@@ -57,14 +9,89 @@ else:
 # from collections import Counter
 # import altair as alt
 
-# # Import your custom clustering module
-# from clustering import compute_tfidf
+import pandas as pd
+import streamlit as st
+import json
+import toml
+from clustering import cluster_articles
+from collections import Counter
 
-# st.set_page_config(layout='wide', initial_sidebar_state='expanded')
+# Load the JSON file with article data
+file_path = 'article_cache.json'
 
-# ARTICLES_CACHE_FILE = 'article_cache.json'
-# LOGO_PATH = 'app/Cat.png'
-# KEYWORD_LOGO_PATH = 'app/logo.png'
+@st.cache_data
+def load_data():
+    with open(file_path, 'r') as f:
+        data = json.load(f)
+    return data
+
+# Load configuration from TOML file
+config = toml.load('config.toml')
+
+# Define custom CSS for the Streamlit app
+st.markdown(f"""
+    <style>
+        body {{
+            color: {config['theme']['textColor']};
+            background-color: {config['theme']['backgroundColor']};
+            font-family: {config['theme']['font']};
+            font-size: {config['theme']['fontSize']}px;
+        }}
+        .primary {{
+            color: {config['theme']['primaryColor']};
+        }}
+        .secondary-bg {{
+            background-color: {config['theme']['secondaryBackgroundColor']};
+        }}
+    </style>
+    """, unsafe_allow_html=True)
+
+# Check if cluster ID is provided
+cluster_id = int(st.query_params.get('cluster_id', [0])[0])
+
+# Load data from the JSON file
+original_data = load_data()
+
+# Extract necessary data from the loaded JSON
+articles = list(original_data.values())
+
+# Re-cluster the articles
+filtered_titles = [article['title'] for article in articles]
+
+# Determine the number of clusters dynamically
+filtered_total_articles = len(filtered_titles)
+if filtered_total_articles == 0:
+    st.write("No articles found")
+elif 0 < filtered_total_articles <= 10:
+    num_clusters = 3
+elif 10 < filtered_total_articles <= 50:
+    num_clusters = 5
+elif 50 < filtered_total_articles <= 100:
+    num_clusters = 7
+else:
+    num_clusters = 12
+
+# Cluster articles based on titles
+clusters = cluster_articles(filtered_titles, num_clusters)
+
+# Get articles in the selected cluster
+if cluster_id in clusters:
+    cluster_articles = [article for article in articles if article['title'] in clusters[cluster_id]]
+
+    # Display articles in the cluster
+    st.title(f"Articles in Cluster {cluster_id + 1}")
+
+    for article in cluster_articles:
+        st.markdown(f"## {article['title']}")
+        st.image(article.get('image_url', ''), use_column_width=True)
+        st.markdown(f"**Source:** {article.get('source', 'N/A')}")
+        st.markdown(f"**Published on:** {article.get('published_date', 'N/A')}")
+        st.markdown(article['body'])
+        st.markdown(f"**Frequent Words:** {', '.join(article.get('keywords', []))}")
+        st.markdown(f"**Sentiment:** {article.get('sentiment_category', 'N/A')}")
+        st.markdown("---")
+else:
+    st.write(f"No articles found for cluster {cluster_id + 1}.")
 
 # @st.cache_data(ttl=3600)  
 # def load_articles_from_cache(cache_file):
